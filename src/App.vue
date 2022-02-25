@@ -16,8 +16,13 @@
 		<div class="gridContainer">
 			<div class="row" v-for="(row, indexRow) in rows">
 				<Cell
-					:content="gridContent[indexRow][indexCol]"
 					v-for="(col, indexCol) in cols"
+					:key="row.toString() + col.toString()"
+					:pos="[row, col]"
+					@emptyZone="emptyZone"
+					@game-over="gameOver"
+					:show="show"
+					:content="gridContent[indexRow][indexCol]"
 				/>
 			</div>
 		</div>
@@ -32,6 +37,7 @@ const nbMines = ref(10);
 const timer = ref(0);
 const rows = ref(9);
 const cols = ref(9);
+const show = ref(false);
 // const content = ref(10);
 let gridContent = reactive([] as number[][]);
 
@@ -46,6 +52,7 @@ const start = () => {
 	gridContent.map(
 		(row, rowIndex) => (gridContent[rowIndex] = row.map(() => 0))
 	);
+	show.value = false;
 	randomFillBombs();
 };
 
@@ -107,7 +114,6 @@ const calculate = () => {
 			}
 		})
 	);
-	console.log(gridContent);
 };
 
 const randomFillBombs = () => {
@@ -120,6 +126,17 @@ const randomFillBombs = () => {
 		gridContent[randomRow][randomCol] = 10;
 	}
 	calculate();
+};
+
+const emptyZone = (a: number[]) => {
+	console.log("a", a);
+};
+
+const gameOver = () => {
+	setTimeout(() => {
+		show.value = true;
+		alert("game over !");
+	}, 150);
 };
 </script>
 

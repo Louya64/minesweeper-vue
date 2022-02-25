@@ -1,12 +1,18 @@
 <template>
 	<div class="cell">
 		<div :class="valNumToColorClass">
+			<img
+				class="imgBombClicked"
+				v-if="bombClicked"
+				src="../assets/croix.png"
+				alt=""
+			/>
 			{{ content }}
 		</div>
 		<div
 			@contextmenu="rightClick"
 			:class="{ show: show }"
-			@click="show = true"
+			@click="leftClick"
 			class="hidder"
 		></div>
 	</div>
@@ -17,10 +23,31 @@ import { computed, watch, ref } from "vue";
 
 interface Props {
 	content: number;
+	show: boolean;
+	pos: number[];
 }
+const emit = defineEmits<{
+	(e: "game-over"): void;
+	(e: "emptyZone", pos: number[]): void;
+}>();
+
 const props = defineProps<Props>();
 let content = ref(props.content);
-const show = ref(false);
+let show = ref(props.show);
+let bombClicked = ref(false);
+const pos = ref(props.pos);
+
+const leftClick = () => {
+	show.value = true;
+	if (content.value === 0) {
+		// découvrir la zone vide
+		emit("emptyZone", pos.value);
+	}
+	if (content.value === 10) {
+		bombClicked.value = true;
+		emit("game-over");
+	}
+};
 
 const rightClick = (e: Event) => {
 	e.preventDefault();
@@ -28,9 +55,19 @@ const rightClick = (e: Event) => {
 };
 
 watch(
+	() => props.show,
+	(newVal) => {
+		if (!newVal) {
+			bombClicked.value = false;
+		}
+
+		return (show.value = newVal);
+	}
+);
+
+watch(
 	() => props.content,
 	(newVal) => {
-		console.log(newVal);
 		return (content.value = newVal);
 	}
 );
@@ -80,6 +117,13 @@ const valNumToColorClass = computed(() => {
 }
 .show {
 	display: none;
+}
+.imgBombClicked {
+	position: absolute;
+	width: 40px;
+	height: 40px;
+	top: -10px;
+	left: -8px;
 }
 .invisible {
 	color: transparent;
