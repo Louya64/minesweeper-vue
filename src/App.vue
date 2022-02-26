@@ -1,6 +1,6 @@
 <template>
 	<h1>Démineur</h1>
-	Click sur le petit bonhomme jaune pour jouer
+	Click sur le petit bonhomme jaune pour (re)jouer
 	<div class="mainContainer">
 		<div class="headContainer">
 			<div class="headContainerItem">
@@ -22,16 +22,16 @@
 					:pos="[row, col]"
 					:rows="rows"
 					:cols="cols"
-					@emptyZone="emptyZone"
-					@resetEmptyZone="resetEmptyZone"
-					@flagUsed="flagUsed"
-					@checkWin="checkWin"
-					@game-over="gameOver"
 					:isStarted="isStarted"
 					:show="show"
 					:flags="flags"
 					:content="gridContent[indexRow][indexCol]"
 					:neighbourEmpty="neighbourEmpty"
+					@flagUsed="flagUsed"
+					@emptyZone="emptyZone"
+					@resetEmptyZone="resetEmptyZone"
+					@checkWin="checkWin"
+					@game-over="gameOver"
 				/>
 			</div>
 		</div>
@@ -40,51 +40,59 @@
 
 <script setup lang="ts">
 import Cell from "./components/Cell.vue";
-import { ref, reactive, watch } from "vue";
-const iconContent = ref(":)"); // début :) / perdu :( / gagné :D
+import { ref, reactive, onBeforeMount } from "vue";
+const iconContent = ref(":)");
 const nbMines = ref(10);
 const timerVal = ref(0);
 const rows = ref(9);
 const cols = ref(9);
 const isStarted = ref(false);
 const show = ref(false);
-const neighbourEmpty = ref([100, 100]);
-// const content = ref(10);
+const totalGoodCellsDisplayed = ref(0);
+
+// initialize grid, filled with 0
 let gridContent = reactive([] as number[][]);
-
-for (let i = 0; i < rows.value; i++) {
-	gridContent.push([]);
-	for (let j = 0; j < cols.value; j++) {
-		gridContent[i].push(0);
+onBeforeMount(() => {
+	for (let i = 0; i < rows.value; i++) {
+		gridContent.push([]);
+		for (let j = 0; j < cols.value; j++) {
+			gridContent[i].push(0);
+		}
 	}
-}
+});
 
+// when click on yellow fellow
 const start = () => {
-	stopTimer();
 	// reset values
+	stopTimer(); // sometimes... it doesn't stop correctly when win or game-over
 	gridContent.map(
 		(row, rowIndex) => (gridContent[rowIndex] = row.map(() => 0))
 	);
-	neighbourEmpty.value = [100, 100];
+	neighbourEmpty.value = [rows.value + 10, cols.value + 10];
+	console.log(neighbourEmpty.value);
 	iconContent.value = ":)";
 	isStarted.value = true;
 	timerVal.value = 0;
 	flags.value = 10;
+	totalGoodCellsDisplayed.value = 0;
+
 	/////////////////////////////////////////////////////////////////
 	// ça marche (pour reset le show) ... mais pourquoi ?
 	// direct show.value = false marchait pas... et sans setTimeout() non plus
 	// changement props asynchrone (y'a un delai ?)
+	/////////////////////////////////////////////////////////////////
 	show.value = true;
 	setTimeout(() => {
 		show.value = false;
-	}, 10);
-	/////////////////////////////////////////////////////////////////
-
-	randomFillBombs();
-	startTimer();
+		setTimeout(() => {
+			// initialize bombs and timer
+			randomFillBombs();
+			startTimer();
+		}, 150);
+	}, 150);
 };
 
-// function to display bombs
+// function to place bombs
 const randomFillBombs = () => {
 	// random cell (row and col), { nbMines } time
 	for (let i = 0; i < nbMines.value; i++) {
@@ -99,7 +107,7 @@ const randomFillBombs = () => {
 	calculate();
 };
 
-// function to display numbers near bombs
+// function to place numbers near bombs
 const calculate = () => {
 	gridContent.map((row, indexRow) =>
 		row.map((col, indexCol) => {
@@ -177,36 +185,26 @@ const flagUsed = (nb: number) => {
 	flags.value += nb;
 };
 
+////////////    empty zone  //////////////////
+const neighbourEmpty = ref([rows.value + 10, cols.value + 10]);
 // when a child is clicked -> send pos to all children to check if they are empty too, to reveal the empty zone
 const emptyZone = (emptyCellClicked: number[]) => {
 	// neighbourEmpty is a props passed to children
 	neighbourEmpty.value = emptyCellClicked;
 };
 const resetEmptyZone = () => {
-	neighbourEmpty.value = [100, 100];
+	neighbourEmpty.value = [rows.value + 10, cols.value + 10];
 };
 
+// increment totalGoodCellsDisplayed at leftClick => when reaches the good number => win
+//   look, icon changes !!!!
 const checkWin = () => {
-	// genre on parcours ... je sais pas quoi et si chaque case value !== 10 est show === true => c'est gagné
-	const grid = document.getElementById("gridContainer") as HTMLElement;
-	let goodCellsDisplayed = 0;
-	for (let i = 0; i < grid.children.length; i++) {
-		for (let j = 0; j < grid.children[i].children.length; j++) {
-			const cell = grid.children[i].children[j].children;
+	totalGoodCellsDisplayed.value++;
 
-			// class = bomb pour là où y'a des bombs
-			const isNotABomb = cell[0].classList[0] !== "bomb";
-			// const cellValClass = grid.children[i].children[j].children[0].classList;
-
-			// class displayNone là où le cache est enlevé = (show = true)
-			const isDisplayed = cell[1].classList[0] === "displayNone";
-
-			if (isDisplayed && isNotABomb) {
-				goodCellsDisplayed++;
-			}
-		}
-	}
-	if (goodCellsDisplayed === rows.value * cols.value - nbMines.value) {
+	if (
+		totalGoodCellsDisplayed.value ===
+		rows.value * cols.value - nbMines.value
+	) {
 		show.value = true;
 		iconContent.value = ":D";
 		isStarted.value = false;
@@ -215,6 +213,28 @@ const checkWin = () => {
 			alert("win !!!!!!!!");
 		}, 150);
 	}
+
+	// ouais ... je m'étais bien pris la tête ! XD je laisse l'ancien code pour mémoire :p
+
+	// const grid = document.getElementById("gridContainer") as HTMLElement;
+	// let goodCellsDisplayed = 0;
+	// for (let i = 0; i < grid.children.length; i++) {
+	// 	for (let j = 0; j < grid.children[i].children.length; j++) {
+	// 		const cell = grid.children[i].children[j].children;
+
+	// 		// class = bomb pour là où y'a des bombs
+	// 		const isNotABomb = cell[0].classList[0] !== "bomb";
+	// 		// const cellValClass = grid.children[i].children[j].children[0].classList;
+
+	// 		// class displayNone là où le cache est enlevé = (show = true)
+	// 		const isDisplayed = cell[1].classList[0] === "displayNone";
+
+	// 		if (isDisplayed && isNotABomb) {
+	// 			goodCellsDisplayed++;
+	// 		}
+	// 	}
+	// }
+	// if (goodCellsDisplayed === rows.value * cols.value - nbMines.value) { ... }
 };
 
 const gameOver = () => {

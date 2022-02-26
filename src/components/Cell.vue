@@ -11,9 +11,9 @@
 		</div>
 		<div
 			@contextmenu="rightClick"
-			:class="[{ displayNone: showCell }, { flagStyle: flag }]"
+			:class="{ displayNone: showCell }"
 			@click="leftClick"
-			class="hidder"
+			class="hiding"
 		>
 			<p v-if="flag">!</p>
 		</div>
@@ -24,14 +24,14 @@
 import { computed, watch, ref } from "vue";
 
 interface Props {
-	content: number;
-	show: boolean;
-	pos: number[];
-	neighbourEmpty: number[];
+	isStarted: boolean;
+	flags: number;
 	rows: number;
 	cols: number;
-	flags: number;
-	isStarted: boolean;
+	pos: number[];
+	content: number;
+	show: boolean;
+	neighbourEmpty: number[];
 }
 const emit = defineEmits<{
 	(e: "game-over"): void;
@@ -42,24 +42,28 @@ const emit = defineEmits<{
 }>();
 
 const props = defineProps<Props>();
+const pos = ref(props.pos);
 let content = ref(props.content);
 let showCell = ref(props.show);
-let bombClicked = ref(false);
-const pos = ref(props.pos);
-const flag = ref(false);
 
+let bombClicked = ref(false); // displays a cross if content = bomb and cell is clicked (to know where you have 'failed' when all is displayed)
+const flag = ref(false); // displays a flag when true
+
+// when props.neighbourEmpty changes => check if this cell is a neighbour and displays its content
 watch(
 	() => props.neighbourEmpty,
 	(newVal) => {
-		if (newVal === [100, 100]) return;
+		// return if newVal is itself
+		if (newVal === [props.rows + 10, props.cols + 10]) return;
+		// return if content is already displayed
 		if (showCell.value) return;
 
 		//utile?
 		if (
 			newVal[0] - 1 < 0 ||
-			newVal[0] + 1 > props.rows ||
+			newVal[0] + 1 > props.rows + 1 ||
 			newVal[1] - 1 < 0 ||
-			newVal[1] + 1 > props.cols
+			newVal[1] + 1 > props.cols + 1
 		)
 			return;
 
@@ -82,46 +86,58 @@ watch(
 	}
 );
 
+// display the content of the cell
 const leftClick = () => {
+	// disable when there is a flag or game is not started
 	if (flag.value || !props.isStarted) return;
 	emit("resetEmptyZone");
 	showCell.value = true;
 	setTimeout(() => {
+		// content = 10 = bomb
 		if (content.value === 10) {
 			bombClicked.value = true;
-			emit("game-over");
+			setTimeout(() => {
+				emit("game-over");
+			}, 250);
 		} else {
-			// vérif gagnant?
 			emit("checkWin");
+			// content = 0 = empty
 			if (content.value === 0) {
-				// découvrir la zone vide
+				// to "tell" neighboors to check if they are empty too (props neighbourEmpty)
 				emit("emptyZone", pos.value);
 			}
 		}
 	}, 1);
 };
 
+// add a flag ... or not
 const rightClick = (e: Event) => {
 	e.preventDefault();
+	// prevent to add more flags than total bombs
 	if (props.flags === 0 && !flag.value) return;
+
+	// toggle flag
 	flag.value = !flag.value;
+
+	// send -1 if flag was added or 1 if removed to calculate flags remaining
 	let nb: number;
 	flag.value ? (nb = -1) : (nb = 1);
 	emit("flagUsed", nb);
 };
 
+// reset "show" when game starts(props.show passed to false) (remove cross img, put back hiding div)
 watch(
 	() => props.show,
 	(newVal, oldVal) => {
 		if (!newVal) {
-			bombClicked.value = false;
+			bombClicked.value = false; // img
 			showCell.value = newVal;
 		}
-
 		return (showCell.value = newVal);
 	}
 );
 
+//
 watch(
 	() => props.content,
 	(newVal) => {
@@ -129,6 +145,7 @@ watch(
 	}
 );
 
+// reset flags displayed when game starts
 watch(
 	() => props.flags,
 	(newVal) => {
@@ -138,6 +155,7 @@ watch(
 	}
 );
 
+// change color (css) depending on content
 const valNumToColorClass = computed(() => {
 	switch (props.content) {
 		case 0:
@@ -154,15 +172,19 @@ const valNumToColorClass = computed(() => {
 			return "five";
 		case 6:
 			return "six";
+		case 7:
+			return "seven";
+		case 8:
+			return "eight";
 		case 10:
 			return "bomb";
 		default:
-			return "classNonCree";
+			return "unknown";
 	}
 });
 </script>
 
-<style>
+<style scoped>
 .cell {
 	width: 50px;
 	height: 50px;
@@ -174,7 +196,7 @@ const valNumToColorClass = computed(() => {
 	font-family: "Press Start 2P", cursive;
 	position: relative;
 }
-.hidder {
+.hiding {
 	position: absolute;
 	width: 50px;
 	height: 50px;
@@ -211,6 +233,12 @@ const valNumToColorClass = computed(() => {
 }
 .six {
 	color: rgb(54, 165, 154);
+}
+.seven {
+	color: rgb(109, 246, 109);
+}
+.eight {
+	color: rgb(236, 240, 36);
 }
 .bomb {
 	border-radius: 50%;
