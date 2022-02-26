@@ -11,10 +11,12 @@
 		</div>
 		<div
 			@contextmenu="rightClick"
-			:class="{ show: show }"
+			:class="[{ displayNone: showCell }, { flagStyle: flag }]"
 			@click="leftClick"
 			class="hidder"
-		></div>
+		>
+			<p v-if="flag">!</p>
+		</div>
 	</div>
 </template>
 
@@ -25,43 +27,98 @@ interface Props {
 	content: number;
 	show: boolean;
 	pos: number[];
+	neighbourEmpty: number[];
+	rows: number;
+	cols: number;
+	flags: number;
+	isStarted: boolean;
 }
 const emit = defineEmits<{
 	(e: "game-over"): void;
 	(e: "emptyZone", pos: number[]): void;
+	(e: "resetEmptyZone"): void;
+	(e: "flagUsed", nb: number): void;
+	(e: "checkWin"): void;
 }>();
 
 const props = defineProps<Props>();
 let content = ref(props.content);
-let show = ref(props.show);
+let showCell = ref(props.show);
 let bombClicked = ref(false);
 const pos = ref(props.pos);
+const flag = ref(false);
+
+watch(
+	() => props.neighbourEmpty,
+	(newVal) => {
+		if (newVal === [100, 100]) return;
+		if (showCell.value) return;
+
+		//utile?
+		if (
+			newVal[0] - 1 < 0 ||
+			newVal[0] + 1 > props.rows ||
+			newVal[1] - 1 < 0 ||
+			newVal[1] + 1 > props.cols
+		)
+			return;
+
+		//si cette cell est voisine d'une qui a émit emptyZone
+		if (
+			(pos.value[0] === newVal[0] - 1 && pos.value[1] === newVal[1] - 1) ||
+			(pos.value[0] === newVal[0] - 1 && pos.value[1] === newVal[1]) ||
+			(pos.value[0] === newVal[0] - 1 && pos.value[1] === newVal[1] + 1) ||
+			(pos.value[0] === newVal[0] && pos.value[1] === newVal[1] - 1) ||
+			(pos.value[0] === newVal[0] && pos.value[1] === newVal[1] + 1) ||
+			(pos.value[0] === newVal[0] + 1 && pos.value[1] === newVal[1] - 1) ||
+			(pos.value[0] === newVal[0] + 1 && pos.value[1] === newVal[1]) ||
+			(pos.value[0] === newVal[0] + 1 && pos.value[1] === newVal[1] + 1)
+		) {
+			// et si c'est pas une bomb
+			if (content.value !== 10) {
+				leftClick();
+			}
+		}
+	}
+);
 
 const leftClick = () => {
-	show.value = true;
-	if (content.value === 0) {
-		// découvrir la zone vide
-		emit("emptyZone", pos.value);
-	}
-	if (content.value === 10) {
-		bombClicked.value = true;
-		emit("game-over");
-	}
+	if (flag.value || !props.isStarted) return;
+	emit("resetEmptyZone");
+	showCell.value = true;
+	setTimeout(() => {
+		if (content.value === 10) {
+			bombClicked.value = true;
+			emit("game-over");
+		} else {
+			// vérif gagnant?
+			emit("checkWin");
+			if (content.value === 0) {
+				// découvrir la zone vide
+				emit("emptyZone", pos.value);
+			}
+		}
+	}, 1);
 };
 
 const rightClick = (e: Event) => {
 	e.preventDefault();
-	console.log("click droit");
+	if (props.flags === 0 && !flag.value) return;
+	flag.value = !flag.value;
+	let nb: number;
+	flag.value ? (nb = -1) : (nb = 1);
+	emit("flagUsed", nb);
 };
 
 watch(
 	() => props.show,
-	(newVal) => {
+	(newVal, oldVal) => {
 		if (!newVal) {
 			bombClicked.value = false;
+			showCell.value = newVal;
 		}
 
-		return (show.value = newVal);
+		return (showCell.value = newVal);
 	}
 );
 
@@ -69,6 +126,15 @@ watch(
 	() => props.content,
 	(newVal) => {
 		return (content.value = newVal);
+	}
+);
+
+watch(
+	() => props.flags,
+	(newVal) => {
+		if (newVal === 10) {
+			return (flag.value = false);
+		}
 	}
 );
 
@@ -115,7 +181,7 @@ const valNumToColorClass = computed(() => {
 	background-color: blueviolet;
 	border: 5px rgb(230, 230, 230) outset;
 }
-.show {
+.displayNone {
 	display: none;
 }
 .imgBombClicked {

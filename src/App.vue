@@ -1,28 +1,37 @@
 <template>
 	<h1>Démineur</h1>
-	<button @click="start">Start</button>
+	Click sur le petit bonhomme jaune pour jouer
 	<div class="mainContainer">
 		<div class="headContainer">
-			<div class="headContainerItem nbMines">
-				{{ nbMines < 100 ? "0" : "" }}{{ nbMines }}
+			<div class="headContainerItem">
+				{{ flags < 100 ? "0" : "" }}{{ flags }}
 			</div>
 			<div @click="start" class="headContainerItem">
 				<p class="icon">{{ iconContent }}</p>
 			</div>
-			<div class="headContainerItem timer">
-				{{ timer < 100 ? "0" : "" }}{{ timer < 10 ? "0" : "" }}{{ timer }}
+			<div class="headContainerItem">
+				{{ timerVal < 100 ? "0" : "" }}{{ timerVal < 10 ? "0" : ""
+				}}{{ timerVal }}
 			</div>
 		</div>
-		<div class="gridContainer">
+		<div id="gridContainer">
 			<div class="row" v-for="(row, indexRow) in rows">
 				<Cell
 					v-for="(col, indexCol) in cols"
 					:key="row.toString() + col.toString()"
 					:pos="[row, col]"
+					:rows="rows"
+					:cols="cols"
 					@emptyZone="emptyZone"
+					@resetEmptyZone="resetEmptyZone"
+					@flagUsed="flagUsed"
+					@checkWin="checkWin"
 					@game-over="gameOver"
+					:isStarted="isStarted"
 					:show="show"
+					:flags="flags"
 					:content="gridContent[indexRow][indexCol]"
+					:neighbourEmpty="neighbourEmpty"
 				/>
 			</div>
 		</div>
@@ -31,13 +40,15 @@
 
 <script setup lang="ts">
 import Cell from "./components/Cell.vue";
-import { ref, reactive } from "vue";
+import { ref, reactive, watch } from "vue";
 const iconContent = ref(":)"); // début :) / perdu :( / gagné :D
 const nbMines = ref(10);
-const timer = ref(0);
+const timerVal = ref(0);
 const rows = ref(9);
 const cols = ref(9);
+const isStarted = ref(false);
 const show = ref(false);
+const neighbourEmpty = ref([100, 100]);
 // const content = ref(10);
 let gridContent = reactive([] as number[][]);
 
@@ -49,18 +60,51 @@ for (let i = 0; i < rows.value; i++) {
 }
 
 const start = () => {
+	stopTimer();
+	// reset values
 	gridContent.map(
 		(row, rowIndex) => (gridContent[rowIndex] = row.map(() => 0))
 	);
-	show.value = false;
+	neighbourEmpty.value = [100, 100];
+	iconContent.value = ":)";
+	isStarted.value = true;
+	timerVal.value = 0;
+	flags.value = 10;
+	/////////////////////////////////////////////////////////////////
+	// ça marche (pour reset le show) ... mais pourquoi ?
+	// direct show.value = false marchait pas... et sans setTimeout() non plus
+	// changement props asynchrone (y'a un delai ?)
+	show.value = true;
+	setTimeout(() => {
+		show.value = false;
+	}, 10);
+	/////////////////////////////////////////////////////////////////
+
 	randomFillBombs();
+	startTimer();
 };
 
+// function to display bombs
+const randomFillBombs = () => {
+	// random cell (row and col), { nbMines } time
+	for (let i = 0; i < nbMines.value; i++) {
+		const randomRow = Math.floor(Math.random() * rows.value);
+		const randomCol = Math.floor(Math.random() * cols.value);
+		// if a bomb is already there => random once more
+		if (gridContent[randomRow][randomCol] === 10) {
+			i--;
+		}
+		gridContent[randomRow][randomCol] = 10;
+	}
+	calculate();
+};
+
+// function to display numbers near bombs
 const calculate = () => {
 	gridContent.map((row, indexRow) =>
 		row.map((col, indexCol) => {
 			if (gridContent[indexRow][indexCol] === 10) {
-				// ligne du dessus de gauche à droite
+				// row above, from left to right:
 				if (
 					indexRow - 1 !== -1 &&
 					indexCol - 1 !== -1 &&
@@ -79,7 +123,7 @@ const calculate = () => {
 					gridContent[indexRow - 1][indexCol + 1] += 1;
 				}
 
-				//m^meme ligne de gauche à droite
+				// same row, from left to right:
 				if (indexCol - 1 !== -1 && gridContent[indexRow][indexCol - 1] !== 10) {
 					gridContent[indexRow][indexCol - 1] += 1;
 				}
@@ -90,7 +134,7 @@ const calculate = () => {
 					gridContent[indexRow][indexCol + 1] += 1;
 				}
 
-				// ligne de dessous de gauche à droite
+				// row below, from left to right:
 				if (
 					indexRow + 1 !== rows.value &&
 					indexCol - 1 !== -1 &&
@@ -116,25 +160,69 @@ const calculate = () => {
 	);
 };
 
-const randomFillBombs = () => {
-	for (let i = 0; i < nbMines.value; i++) {
-		const randomRow = Math.floor(Math.random() * rows.value);
-		const randomCol = Math.floor(Math.random() * cols.value);
-		if (gridContent[randomRow][randomCol] === 10) {
-			i--;
-		}
-		gridContent[randomRow][randomCol] = 10;
-	}
-	calculate();
+/////////////    timer     /////////////////
+let timerId: number;
+const startTimer = () => {
+	timerId = setInterval(() => timerVal.value++, 1000);
+};
+const stopTimer = () => {
+	clearInterval(timerId);
 };
 
-const emptyZone = (a: number[]) => {
-	console.log("a", a);
+////////////   flags   //////////////////////
+const flags = ref(nbMines.value);
+// emit listened -> if flag added by a child component, nb = -1, else nb = 1
+// if flags.value === 0 child component can't add a flag
+const flagUsed = (nb: number) => {
+	flags.value += nb;
+};
+
+// when a child is clicked -> send pos to all children to check if they are empty too, to reveal the empty zone
+const emptyZone = (emptyCellClicked: number[]) => {
+	// neighbourEmpty is a props passed to children
+	neighbourEmpty.value = emptyCellClicked;
+};
+const resetEmptyZone = () => {
+	neighbourEmpty.value = [100, 100];
+};
+
+const checkWin = () => {
+	// genre on parcours ... je sais pas quoi et si chaque case value !== 10 est show === true => c'est gagné
+	const grid = document.getElementById("gridContainer") as HTMLElement;
+	let goodCellsDisplayed = 0;
+	for (let i = 0; i < grid.children.length; i++) {
+		for (let j = 0; j < grid.children[i].children.length; j++) {
+			const cell = grid.children[i].children[j].children;
+
+			// class = bomb pour là où y'a des bombs
+			const isNotABomb = cell[0].classList[0] !== "bomb";
+			// const cellValClass = grid.children[i].children[j].children[0].classList;
+
+			// class displayNone là où le cache est enlevé = (show = true)
+			const isDisplayed = cell[1].classList[0] === "displayNone";
+
+			if (isDisplayed && isNotABomb) {
+				goodCellsDisplayed++;
+			}
+		}
+	}
+	if (goodCellsDisplayed === rows.value * cols.value - nbMines.value) {
+		show.value = true;
+		iconContent.value = ":D";
+		isStarted.value = false;
+		stopTimer();
+		setTimeout(() => {
+			alert("win !!!!!!!!");
+		}, 150);
+	}
 };
 
 const gameOver = () => {
+	iconContent.value = ":(";
+	show.value = true;
+	isStarted.value = false;
+	stopTimer();
 	setTimeout(() => {
-		show.value = true;
 		alert("game over !");
 	}, 150);
 };
@@ -183,7 +271,7 @@ const gameOver = () => {
 .icon:hover {
 	cursor: pointer;
 }
-.gridContainer {
+#gridContainer {
 	border: 5px rgb(230, 230, 230) inset;
 }
 .row {
