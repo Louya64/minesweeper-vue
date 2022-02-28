@@ -26,6 +26,7 @@
 					:show="show"
 					:flags="flags"
 					:content="gridContent[indexRow][indexCol]"
+					:gridContent="gridContent"
 					:neighbourEmpty="neighbourEmpty"
 					@flagUsed="flagUsed"
 					@emptyZone="emptyZone"
@@ -65,11 +66,16 @@ onBeforeMount(() => {
 const start = () => {
 	// reset values
 	stopTimer(); // sometimes... it doesn't stop correctly when win or game-over
+
+	// remove cross img (pop from dbclick and discover a bomb)
+	const imgToDelAtStart = document.querySelectorAll(".imgToDelAtStart");
+	imgToDelAtStart.forEach((element) => {
+		element.remove();
+	});
 	gridContent.map(
 		(row, rowIndex) => (gridContent[rowIndex] = row.map(() => 0))
 	);
 	neighbourEmpty.value = [rows.value + 10, cols.value + 10];
-	console.log(neighbourEmpty.value);
 	iconContent.value = ":)";
 	isStarted.value = true;
 	timerVal.value = 0;
