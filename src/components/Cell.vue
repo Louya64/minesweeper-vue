@@ -275,42 +275,42 @@ const valNumToColorClass = computed(() => {
 <style>
 .imgBombClicked {
 	position: absolute;
-	width: 40px;
-	height: 40px;
-	top: -10px;
-	left: -8px;
+	width: 2.2vw;
+	height: 2.2vw;
+	top: -0.5vw;
+	left: -0.5vw;
 }
 </style>
 
 <style scoped>
 .cell {
-	width: 50px;
-	height: 50px;
-	border: 2px solid rgb(143, 143, 143);
+	width: 3vw;
+	height: 3vw;
+	border: 0.15vw solid rgb(143, 143, 143);
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	font-size: 30px;
+	font-size: 1.7vw;
 	font-family: "Press Start 2P", cursive;
 	position: relative;
 }
 .hiding {
 	position: absolute;
-	width: 50px;
-	height: 50px;
+	width: 3vw;
+	height: 3vw;
 	background-color: blueviolet;
-	border: 5px rgb(230, 230, 230) outset;
+	border: 0.3vw rgb(230, 230, 230) outset;
+}
+@media all and (max-width: 1224px) {
+	.cell,
+	.hiding {
+		width: 5vw;
+		height: 5vw;
+	}
 }
 .displayNone {
 	display: none;
 }
-/* .imgBombClicked {
-	position: absolute;
-	width: 40px;
-	height: 40px;
-	top: -10px;
-	left: -8px;
-} */
 .invisible {
 	color: transparent;
 }
@@ -341,10 +341,10 @@ const valNumToColorClass = computed(() => {
 .bomb {
 	border-radius: 50%;
 	background-color: red;
-	border: 3px solid black;
+	border: 0.2vw solid black;
 	color: transparent;
-	width: 30px;
-	height: 30px;
+	width: 1.7vw;
+	height: 1.7vw;
 	margin: 10px;
 }
 </style>

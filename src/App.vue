@@ -1,8 +1,61 @@
 <template>
 	<h1>Démineur</h1>
-	Click sur le petit bonhomme jaune pour (re)jouer
-	<div class="changeContainer">
-		<div>
+	Click sur le petit bonhomme jaune pour démarrer une partie<br /><br />
+	<div class="mainWrapper">
+		<div class="rulesContainer">
+			<h2>Règles du jeu</h2>
+			<p class="rules">
+				* Le but du jeu est de découvrir toutes les cases sans tomber sur une
+				bombe<br /><br />
+				* Un click gauche sur une case "cachée" révèle son contenu <br />
+				* Un click droit sur une case "cachée" permet de déposer un drapeau<br />
+				* Un double click sur une case découverte, si le nombre de drapeaux
+				déposée sur les cases adjacentes correspond au contenu de cette case,
+				révèle les cases adjacentes<br />
+				* Le timer ... ne sert à rien mais il compte ^^<br /><br />
+				**** Click sur le petit bonhomme jaune pour démarrer une partie
+			</p>
+		</div>
+
+		<div class="mainContainer">
+			<div class="headContainer">
+				<div class="headContainerItem">
+					{{ flags < 100 ? "0" : "" }}{{ flags }}
+				</div>
+				<div @click="start" class="headContainerItem">
+					<p class="icon">{{ iconContent }}</p>
+				</div>
+				<div class="headContainerItem">
+					{{ timerVal < 100 ? "0" : "" }}{{ timerVal < 10 ? "0" : ""
+					}}{{ timerVal }}
+				</div>
+			</div>
+			<div id="gridContainer">
+				<div class="row" v-for="(row, indexRow) in rows">
+					<Cell
+						v-for="(col, indexCol) in cols"
+						:key="row.toString() + col.toString()"
+						:pos="[row, col]"
+						:nbMines="nbMines"
+						:rows="rows"
+						:cols="cols"
+						:isStarted="isStarted"
+						:show="show"
+						:flags="flags"
+						:content="gridContent[indexRow][indexCol]"
+						:gridContent="gridContent"
+						:neighbourEmpty="neighbourEmpty"
+						@flagUsed="flagUsed"
+						@emptyZone="emptyZone"
+						@resetEmptyZone="resetEmptyZone"
+						@checkWin="checkWin"
+						@game-over="gameOver"
+					/>
+				</div>
+			</div>
+		</div>
+
+		<div class="changeContainer">
 			<div>
 				<label for="width">Changer la hauteur</label>
 				<input type="number" id="width" v-model="rows" />
@@ -11,46 +64,9 @@
 				<label for="height">Changer la largeur</label>
 				<input type="number" id="height" v-model="cols" />
 			</div>
-		</div>
-		<div>
-			<label for="bombs">Changer le nombre de bombes</label>
-			<input type="number" id="bombs" v-model="nbMines" />
-		</div>
-	</div>
-	<div class="mainContainer">
-		<div class="headContainer">
-			<div class="headContainerItem">
-				{{ flags < 100 ? "0" : "" }}{{ flags }}
-			</div>
-			<div @click="start" class="headContainerItem">
-				<p class="icon">{{ iconContent }}</p>
-			</div>
-			<div class="headContainerItem">
-				{{ timerVal < 100 ? "0" : "" }}{{ timerVal < 10 ? "0" : ""
-				}}{{ timerVal }}
-			</div>
-		</div>
-		<div id="gridContainer">
-			<div class="row" v-for="(row, indexRow) in rows">
-				<Cell
-					v-for="(col, indexCol) in cols"
-					:key="row.toString() + col.toString()"
-					:pos="[row, col]"
-					:nbMines="nbMines"
-					:rows="rows"
-					:cols="cols"
-					:isStarted="isStarted"
-					:show="show"
-					:flags="flags"
-					:content="gridContent[indexRow][indexCol]"
-					:gridContent="gridContent"
-					:neighbourEmpty="neighbourEmpty"
-					@flagUsed="flagUsed"
-					@emptyZone="emptyZone"
-					@resetEmptyZone="resetEmptyZone"
-					@checkWin="checkWin"
-					@game-over="gameOver"
-				/>
+			<div>
+				<label for="bombs">Changer les bombes</label>
+				<input type="number" id="bombs" v-model="nbMines" />
 			</div>
 		</div>
 	</div>
@@ -302,47 +318,54 @@ const gameOver = () => {
 
 #app {
 	margin: 0 auto;
-	padding: 2rem;
 	text-align: center;
 }
-.changeContainer {
+
+.mainWrapper {
 	display: flex;
+	justify-content: space-around;
+}
+
+.rulesContainer {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
 	justify-content: center;
-	align-items: center;
-	font-size: larger;
 }
-.changeContainer label {
-	padding: 20px;
+.rules {
+	padding: 5vw;
+	text-align: left;
 }
-.changeContainer input {
-	width: 100px;
-	font-size: larger;
+@media all and (max-width: 1224px) {
+	.rulesContainer {
+		margin-top: 10vw;
+	}
 }
 
 .mainContainer {
 	width: fit-content;
 	margin: auto;
-	border: 5px rgb(230, 230, 230) outset;
+	border: 0.3vw rgb(230, 230, 230) outset;
 	background-color: lightgray;
-	padding: 15px;
+	padding: 1vw;
+	font-size: 1.5vw;
 }
 .headContainer {
-	border: 5px rgb(230, 230, 230) inset;
-	padding: 15px;
-	margin-bottom: 15px;
+	border: 0.3vw rgb(230, 230, 230) inset;
+	padding: 1vw;
+	margin-bottom: 1vw;
 	display: flex;
 	justify-content: space-between;
 }
 .headContainerItem {
 	font-family: "Press Start 2P", cursive;
-	height: 60px;
+	height: 3.5vw;
 	background-color: black;
 	color: red;
-	font-size: 30px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	padding: 5px;
+	padding: 0.3vw;
 }
 .icon {
 	transform: rotate(0.25turn);
@@ -354,9 +377,39 @@ const gameOver = () => {
 	cursor: pointer;
 }
 #gridContainer {
-	border: 5px rgb(230, 230, 230) inset;
+	border: 0.3vw rgb(230, 230, 230) inset;
 }
 .row {
 	display: flex;
+}
+@media all and (max-width: 1224px) {
+	.mainContainer {
+		margin: 5vw;
+		/* font-size: 1.5vw; */
+	}
+}
+
+.changeContainer {
+	flex: 1;
+	font-size: larger;
+}
+.changeContainer label {
+	padding: 1vw;
+}
+.changeContainer input {
+	width: 5vw;
+	font-size: larger;
+	margin: 2vw 0;
+}
+@media all and (max-width: 1224px) {
+	.changeContainer {
+		position: absolute;
+		top: 0;
+		left: 0;
+		text-align: right;
+	}
+	.changeContainer input {
+		margin: 0.5vw 0;
+	}
 }
 </style>
