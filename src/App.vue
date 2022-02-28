@@ -1,6 +1,22 @@
 <template>
 	<h1>Démineur</h1>
 	Click sur le petit bonhomme jaune pour (re)jouer
+	<div class="changeContainer">
+		<div>
+			<div>
+				<label for="width">Changer la hauteur</label>
+				<input type="number" id="width" v-model="rows" />
+			</div>
+			<div>
+				<label for="height">Changer la largeur</label>
+				<input type="number" id="height" v-model="cols" />
+			</div>
+		</div>
+		<div>
+			<label for="bombs">Changer le nombre de bombes</label>
+			<input type="number" id="bombs" v-model="nbMines" />
+		</div>
+	</div>
 	<div class="mainContainer">
 		<div class="headContainer">
 			<div class="headContainerItem">
@@ -20,6 +36,7 @@
 					v-for="(col, indexCol) in cols"
 					:key="row.toString() + col.toString()"
 					:pos="[row, col]"
+					:nbMines="nbMines"
 					:rows="rows"
 					:cols="cols"
 					:isStarted="isStarted"
@@ -41,26 +58,47 @@
 
 <script setup lang="ts">
 import Cell from "./components/Cell.vue";
-import { ref, reactive, onBeforeMount } from "vue";
+import { ref, reactive, onBeforeMount, watch } from "vue";
 const iconContent = ref(":)");
 const nbMines = ref(10);
 const timerVal = ref(0);
 const rows = ref(9);
 const cols = ref(9);
+const flags = ref(nbMines.value);
 const isStarted = ref(false);
 const show = ref(false);
 const totalGoodCellsDisplayed = ref(0);
 
 // initialize grid, filled with 0
 let gridContent = reactive([] as number[][]);
+console.log(gridContent);
 onBeforeMount(() => {
+	console.log(gridContent);
+	createGrid();
+});
+const createGrid = () => {
+	gridContent.splice(0, gridContent.length);
 	for (let i = 0; i < rows.value; i++) {
 		gridContent.push([]);
 		for (let j = 0; j < cols.value; j++) {
 			gridContent[i].push(0);
 		}
 	}
-});
+	console.log(gridContent);
+};
+
+watch(
+	() => rows.value,
+	() => {
+		createGrid();
+	}
+);
+watch(
+	() => cols.value,
+	() => {
+		createGrid();
+	}
+);
 
 // when click on yellow fellow
 const start = () => {
@@ -79,7 +117,7 @@ const start = () => {
 	iconContent.value = ":)";
 	isStarted.value = true;
 	timerVal.value = 0;
-	flags.value = 10;
+	flags.value = nbMines.value;
 	totalGoodCellsDisplayed.value = 0;
 
 	/////////////////////////////////////////////////////////////////
@@ -184,7 +222,12 @@ const stopTimer = () => {
 };
 
 ////////////   flags   //////////////////////
-const flags = ref(nbMines.value);
+watch(
+	() => nbMines.value,
+	(newVal) => {
+		return (flags.value = newVal);
+	}
+);
 // emit listened -> if flag added by a child component, nb = -1, else nb = 1
 // if flags.value === 0 child component can't add a flag
 const flagUsed = (nb: number) => {
@@ -261,6 +304,19 @@ const gameOver = () => {
 	margin: 0 auto;
 	padding: 2rem;
 	text-align: center;
+}
+.changeContainer {
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	font-size: larger;
+}
+.changeContainer label {
+	padding: 20px;
+}
+.changeContainer input {
+	width: 100px;
+	font-size: larger;
 }
 
 .mainContainer {
