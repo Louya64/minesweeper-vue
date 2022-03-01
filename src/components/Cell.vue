@@ -94,7 +94,7 @@ const checkFlags = () => {
 	//check is neighbours have flags
 	// if nbflags === this cell content => display neighbours content
 	if (content.value === 0) return;
-	const grid = document.getElementById("gridContainer") as HTMLElement;
+	const grid = document.getElementById("gameGrid") as HTMLElement;
 	let totalNeighbourFlags = 0;
 	const cellsToCheck = [];
 
@@ -275,37 +275,45 @@ const valNumToColorClass = computed(() => {
 <style>
 .imgBombClicked {
 	position: absolute;
-	width: 2.2vw;
-	height: 2.2vw;
+	width: 35px;
+	height: 35px;
 	top: -0.5vw;
 	left: -0.5vw;
+}
+@media all and (max-width: 1224px) {
+	.imgBombClicked {
+		width: 30px;
+		height: 30px;
+	}
 }
 </style>
 
 <style scoped>
+.cell,
+.hiding {
+	width: 45px;
+	height: 45px;
+}
 .cell {
-	width: 3vw;
-	height: 3vw;
-	border: 0.15vw solid rgb(143, 143, 143);
+	border: 1px solid rgb(143, 143, 143);
 	display: flex;
 	justify-content: center;
 	align-items: center;
-	font-size: 1.7vw;
+	font-size: 25px;
 	font-family: "Press Start 2P", cursive;
 	position: relative;
 }
 .hiding {
 	position: absolute;
-	width: 3vw;
-	height: 3vw;
 	background-color: blueviolet;
-	border: 0.3vw rgb(230, 230, 230) outset;
+	border: 4px rgb(230, 230, 230) outset;
 }
 @media all and (max-width: 1224px) {
 	.cell,
 	.hiding {
-		width: 5vw;
-		height: 5vw;
+		width: 35px;
+		height: 35px;
+		font-size: 22px;
 	}
 }
 .displayNone {
@@ -343,8 +351,14 @@ const valNumToColorClass = computed(() => {
 	background-color: red;
 	border: 0.2vw solid black;
 	color: transparent;
-	width: 1.7vw;
-	height: 1.7vw;
+	width: 27px;
+	height: 27px;
 	margin: 10px;
+}
+@media all and (max-width: 1224px) {
+	.bomb {
+		width: 22px;
+		height: 22px;
+	}
 }
 </style>

@@ -1,8 +1,13 @@
 <template>
-	<h1>Démineur</h1>
-	Click sur le petit bonhomme jaune pour démarrer une partie<br /><br />
+	<header>
+		<h1>Démineur</h1>
+		Click sur le petit bonhomme jaune pour démarrer une partie
+		<button class="rulesBtn btn" @click="toggleRules">Règles du jeu</button>
+		<button class="settingsBtn btn" @click="toggleSettings">Réglages</button>
+	</header>
+
 	<div class="mainWrapper">
-		<div class="rulesContainer">
+		<div v-if="showRules" class="rulesContainer">
 			<h2>Règles du jeu</h2>
 			<p class="rules">
 				* Le but du jeu est de découvrir toutes les cases sans tomber sur une
@@ -17,20 +22,27 @@
 			</p>
 		</div>
 
-		<div class="mainContainer">
-			<div class="headContainer">
-				<div class="headContainerItem">
+		<Settings
+			@newRows="updateRows"
+			@newCols="updateCols"
+			@newNbMines="updateNbMines"
+			v-if="showSettings"
+		/>
+
+		<div class="gameContainer">
+			<div class="gameHeader">
+				<div class="gameHeaderItem">
 					{{ flags < 100 ? "0" : "" }}{{ flags }}
 				</div>
-				<div @click="start" class="headContainerItem">
+				<div @click="start" class="gameHeaderItem">
 					<p class="icon">{{ iconContent }}</p>
 				</div>
-				<div class="headContainerItem">
+				<div class="gameHeaderItem">
 					{{ timerVal < 100 ? "0" : "" }}{{ timerVal < 10 ? "0" : ""
 					}}{{ timerVal }}
 				</div>
 			</div>
-			<div id="gridContainer">
+			<div id="gameGrid">
 				<div class="row" v-for="(row, indexRow) in rows">
 					<Cell
 						v-for="(col, indexCol) in cols"
@@ -54,67 +66,67 @@
 				</div>
 			</div>
 		</div>
-
-		<div class="changeContainer">
-			<div>
-				<label for="width">Changer la hauteur</label>
-				<input type="number" id="width" v-model="rows" />
-			</div>
-			<div>
-				<label for="height">Changer la largeur</label>
-				<input type="number" id="height" v-model="cols" />
-			</div>
-			<div>
-				<label for="bombs">Changer les bombes</label>
-				<input type="number" id="bombs" v-model="nbMines" />
-			</div>
-		</div>
 	</div>
 </template>
 
 <script setup lang="ts">
 import Cell from "./components/Cell.vue";
 import { ref, reactive, onBeforeMount, watch } from "vue";
+import Settings from "./components/Settings.vue";
+
 const iconContent = ref(":)");
 const nbMines = ref(10);
 const timerVal = ref(0);
 const rows = ref(9);
 const cols = ref(9);
+const showSettings = ref(false);
+const showRules = ref(false);
 const flags = ref(nbMines.value);
 const isStarted = ref(false);
 const show = ref(false);
 const totalGoodCellsDisplayed = ref(0);
 
-// initialize grid, filled with 0
+const toggleSettings = () => {
+	if (showRules.value) {
+		showRules.value = false;
+	}
+	showSettings.value = !showSettings.value;
+};
+const toggleRules = () => {
+	if (showSettings.value) {
+		showSettings.value = false;
+	}
+	showRules.value = !showRules.value;
+};
+
 let gridContent = reactive([] as number[][]);
-console.log(gridContent);
 onBeforeMount(() => {
-	console.log(gridContent);
 	createGrid();
 });
 const createGrid = () => {
+	// first empty grid (usefull if alredy exists)
 	gridContent.splice(0, gridContent.length);
+	// then fill it with 0 to initialize
 	for (let i = 0; i < rows.value; i++) {
 		gridContent.push([]);
 		for (let j = 0; j < cols.value; j++) {
 			gridContent[i].push(0);
 		}
 	}
-	console.log(gridContent);
 };
 
-watch(
-	() => rows.value,
-	() => {
-		createGrid();
-	}
-);
-watch(
-	() => cols.value,
-	() => {
-		createGrid();
-	}
-);
+const updateRows = (nb: number) => {
+	rows.value = nb;
+	createGrid();
+};
+const updateCols = (nb: number) => {
+	cols.value = nb;
+	createGrid();
+};
+const updateNbMines = (nb: number) => {
+	nbMines.value = nb;
+	createGrid();
+};
 
 // when click on yellow fellow
 const start = () => {
@@ -281,7 +293,7 @@ const checkWin = () => {
 
 	// ouais ... je m'étais bien pris la tête ! XD je laisse l'ancien code pour mémoire :p
 
-	// const grid = document.getElementById("gridContainer") as HTMLElement;
+	// const grid = document.getElementById("gameGrid") as HTMLElement;
 	// let goodCellsDisplayed = 0;
 	// for (let i = 0; i < grid.children.length; i++) {
 	// 	for (let j = 0; j < grid.children[i].children.length; j++) {
@@ -319,45 +331,89 @@ const gameOver = () => {
 #app {
 	margin: 0 auto;
 	text-align: center;
+	background-color: rgb(242, 237, 246);
+	padding-bottom: 10vh;
 }
 
+header {
+	/* background-color: purple; */
+	position: relative;
+	min-height: 10vw;
+	padding: 2vw;
+}
+
+.btn {
+	z-index: 1;
+	position: absolute;
+	border: 0;
+	border-radius: 5px;
+	padding: 0.7vw 1.2vw;
+	background-color: blueviolet;
+	box-shadow: 2px 2px 1px black;
+	color: white;
+	text-shadow: 2px 2px 1px black;
+	font-size: 1vw;
+}
+.btn:hover {
+	cursor: pointer;
+}
+
+.rulesBtn {
+	top: 1.5vw;
+	left: 5vw;
+}
+
+.settingsBtn {
+	top: 5vw;
+	left: 5vw;
+}
+</style>
+
+<style scoped>
 .mainWrapper {
+	/* background-color: yellow; */
+	position: relative;
 	display: flex;
-	justify-content: space-around;
+	justify-content: center;
 }
 
 .rulesContainer {
-	flex: 1;
+	z-index: 1;
+	position: absolute;
+	top: 5vw;
+	left: 0;
+	width: 33vw;
 	display: flex;
 	flex-direction: column;
 	justify-content: center;
+	background-color: rgb(242, 237, 246);
 }
 .rules {
-	padding: 5vw;
+	padding: 2vw;
 	text-align: left;
 }
-@media all and (max-width: 1224px) {
-	.rulesContainer {
-		margin-top: 10vw;
-	}
-}
 
-.mainContainer {
+.gameContainer {
 	width: fit-content;
-	margin: auto;
+	margin: auto 5vw;
 	border: 0.3vw rgb(230, 230, 230) outset;
 	background-color: lightgray;
 	padding: 1vw;
-	font-size: 1.5vw;
+	font-size: 25px;
 }
-.headContainer {
+@media all and (max-width: 1224px) {
+	.gameContainer {
+		font-size: 20px;
+	}
+}
+.gameHeader {
 	border: 0.3vw rgb(230, 230, 230) inset;
 	padding: 1vw;
 	margin-bottom: 1vw;
 	display: flex;
 	justify-content: space-between;
 }
-.headContainerItem {
+.gameHeaderItem {
 	font-family: "Press Start 2P", cursive;
 	height: 3.5vw;
 	background-color: black;
@@ -376,39 +432,25 @@ const gameOver = () => {
 .icon:hover {
 	cursor: pointer;
 }
-#gridContainer {
+#gameGrid {
 	border: 0.3vw rgb(230, 230, 230) inset;
 }
 .row {
 	display: flex;
 }
 @media all and (max-width: 1224px) {
-	.mainContainer {
+	.gameContainer {
 		margin: 5vw;
-		/* font-size: 1.5vw; */
 	}
 }
-
-.changeContainer {
-	flex: 1;
-	font-size: larger;
-}
-.changeContainer label {
-	padding: 1vw;
-}
-.changeContainer input {
-	width: 5vw;
-	font-size: larger;
-	margin: 2vw 0;
-}
 @media all and (max-width: 1224px) {
-	.changeContainer {
+	.settings {
 		position: absolute;
 		top: 0;
 		left: 0;
 		text-align: right;
 	}
-	.changeContainer input {
+	.settings input {
 		margin: 0.5vw 0;
 	}
 }
